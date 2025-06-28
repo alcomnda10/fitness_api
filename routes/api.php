@@ -90,10 +90,10 @@ Route::get('/plans/{id}', [PlanController::class, 'show']);
 Route::delete('/plans/{id}', [PlanController::class, 'destroy']);
 
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/users', [UserController::class, 'index']);
-    Route::delete('/users/{id}', [UserController::class, 'destroy']);
-});
+
+Route::get('/users', [UserController::class, 'index']);
+Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
 Route::patch('/users/{id}/role', [UserController::class, 'updateRole']);
 
 
