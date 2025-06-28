@@ -10,7 +10,17 @@ class CourseController extends Controller
 {
     public function index()
     {
-        return Course::all();
+        $courses = Course::all()->map(function ($course) {
+            return [
+                'id' => $course->id,
+                'title' => $course->title,
+                'description' => $course->description,
+                'price' => $course->price,
+                'image' => $course->image ? url($course->image) : null,
+            ];
+        });
+
+        return response()->json($courses);
     }
 
     public function store(Request $request)
@@ -31,13 +41,26 @@ class CourseController extends Controller
 
         $course = Course::create($data);
 
-        return response()->json($course, 201);
+        return response()->json([
+            'id' => $course->id,
+            'title' => $course->title,
+            'description' => $course->description,
+            'price' => $course->price,
+            'image' => $course->image ? url($course->image) : null,
+        ], 201);
     }
-
 
     public function show($id)
     {
-        return Course::findOrFail($id);
+        $course = Course::findOrFail($id);
+
+        return response()->json([
+            'id' => $course->id,
+            'title' => $course->title,
+            'description' => $course->description,
+            'price' => $course->price,
+            'image' => $course->image ? url($course->image) : null,
+        ]);
     }
 
     public function update(Request $request, $id)
@@ -54,7 +77,6 @@ class CourseController extends Controller
         $data = $request->only(['title', 'description', 'price']);
 
         if ($request->hasFile('image')) {
-            // حذف الصورة القديمة إذا كانت موجودة
             if ($course->image && Storage::disk('public')->exists(str_replace('/storage/', '', $course->image))) {
                 Storage::disk('public')->delete(str_replace('/storage/', '', $course->image));
             }
@@ -65,13 +87,24 @@ class CourseController extends Controller
 
         $course->update($data);
 
-        return response()->json($course);
+        return response()->json([
+            'id' => $course->id,
+            'title' => $course->title,
+            'description' => $course->description,
+            'price' => $course->price,
+            'image' => $course->image ? url($course->image) : null,
+        ]);
     }
-
 
     public function destroy($id)
     {
-        Course::destroy($id);
+        $course = Course::findOrFail($id);
+
+        if ($course->image && Storage::disk('public')->exists(str_replace('/storage/', '', $course->image))) {
+            Storage::disk('public')->delete(str_replace('/storage/', '', $course->image));
+        }
+
+        $course->delete();
 
         return response()->json(['message' => 'Course deleted']);
     }
