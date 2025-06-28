@@ -22,6 +22,7 @@ return [
     'allowed_origins' => [
         'https://fitness-app-wine-delta.vercel.app',
         'http://localhost:5173', // إذا كنت تختبر محليًا أيضًا
+        'http://localhost:5174', // إذا كنت تختبر محليًا أيضًا
     ],
     'allowed_origins_patterns' => [],
 
