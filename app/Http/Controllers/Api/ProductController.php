@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use Illuminate\Support\Facades\Storage;
@@ -11,13 +10,14 @@ class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::all();
-
-        $products->transform(function ($product) {
-            if ($product->image) {
-                $product->image = $product->image ? url('storage/' . $product->image) : null;
-            }
-            return $product;
+        $products = Product::all()->map(function ($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'description' => $product->description,
+                'price' => $product->price,
+                'image' => $product->image ? url('storage/' . $product->image) : null,
+            ];
         });
 
         return response()->json($products);
@@ -25,65 +25,84 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric',
-            'image' => 'nullable|image|max:2048', 
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
-        $imageName = null;
         if ($request->hasFile('image')) {
-            $imageName = $request->file('image')->store('products', 'public');
+            $imagePath = $request->file('image')->store('products', 'public');
+            $validated['image'] = $imagePath;
         }
 
-        $product = Product::create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'price' => $request->price,
-            'image' => $imageName,
-        ]);
+        $product = Product::create($validated);
 
-        return response()->json($product, 201);
+        return response()->json([
+            'id' => $product->id,
+            'name' => $product->name,
+            'description' => $product->description,
+            'price' => $product->price,
+            'image' => $product->image ? url('storage/' . $product->image) : null,
+        ], 201);
     }
 
     public function update(Request $request, $id)
     {
         $product = Product::findOrFail($id);
 
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'sometimes|required|numeric',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
         if ($request->hasFile('image')) {
-            if ($product->image && Storage::disk('public')->exists($product->image)) {
+            // حذف الصورة القديمة إن وجدت
+            if ($product->image) {
                 Storage::disk('public')->delete($product->image);
             }
-            $imageName = $request->file('image')->store('products', 'public');
-            $product->image = $imageName;
+
+            $imagePath = $request->file('image')->store('products', 'public');
+            $validated['image'] = $imagePath;
         }
 
-        $product->name = $request->name ?? $product->name;
-        $product->description = $request->description ?? $product->description;
-        $product->price = $request->price ?? $product->price;
+        $product->update($validated);
 
-        $product->save();
-
-        return response()->json($product);
+        return response()->json([
+            'id' => $product->id,
+            'name' => $product->name,
+            'description' => $product->description,
+            'price' => $product->price,
+            'image' => $product->image ? url('storage/' . $product->image) : null,
+        ]);
     }
+
     public function destroy($id)
     {
         $product = Product::findOrFail($id);
 
-        if ($product->image && Storage::disk('public')->exists($product->image)) {
+        if ($product->image) {
             Storage::disk('public')->delete($product->image);
         }
 
         $product->delete();
 
         return response()->json(['message' => 'Product deleted successfully']);
+    }
+
+    public function show($id)
+    {
+        $product = Product::findOrFail($id);
+
+        return response()->json([
+            'id' => $product->id,
+            'name' => $product->name,
+            'description' => $product->description,
+            'price' => $product->price,
+            'image' => $product->image ? url('storage/' . $product->image) : null,
+        ]);
     }
 }
